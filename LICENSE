@@ -1,21 +1,70 @@
-MIT License
+AlphaLensAI Community Contribution License (ACCL) — 2025
 
 Copyright (c) 2025 lorenschwartz
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Preamble
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+This license is intended to keep AlphaLensAI open and useful while ensuring
+that organizations deriving commercial benefit contribute improvements back to
+the project. This is a custom license. This text is for convenience and is
+not legal advice — consult legal counsel to ensure the license meets your
+requirements and is enforceable in your jurisdiction.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Grant of Rights
+
+1. Subject to the terms below, the licensor grants you a worldwide, royalty-
+free, non-exclusive, perpetual license to use, copy, modify, and distribute
+the Software for personal, academic, research, internal business, or
+commercial purposes.
+
+Contribution Requirement for Commercial Use
+
+2. "Commercial Use" means: use of the Software by an entity (including its
+affiliates) primarily for the purpose of commercial advantage, direct or
+indirect revenue generation, or incorporation into a product or service
+offered to third parties.
+
+3. If you engage in Commercial Use, you must contribute back a meaningful
+improvement to the Software within 180 days of the first Commercial Use.
+Meaningful improvement means changes that fix bugs, add features, improve
+performance, or otherwise materially benefit the Software. Contributions must
+be submitted as a pull request (or equivalent) to the project's primary
+repository and must be licensed under the same ACCL license.
+
+4. If you cannot make a contribution within 180 days, you must contact the
+maintainers to arrange an alternative contribution plan or obtain a separate
+commercial license. Failure to comply with this contribution requirement
+terminates the rights granted by this license for the non-complying party.
+
+Attribution and Notices
+
+5. All copies or substantial portions of the Software must retain the above
+copyright notice, this license text, and attribution to the original
+project (AlphaLensAI) in a reasonably prominent location in any distributed
+artifact or documentation.
+
+Patent and Contributor Grant
+
+6. Each Contributor grants a patent license under any patent claims that are
+necessarily infringed by their Contribution, to the extent necessary for
+others to use the Contribution under this license.
+
+Warranty and Liability
+
+7. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE
+FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Enforcement and Interpretation
+
+8. If you have questions about compliance or wish to obtain a commercial
+license alternative, contact the project maintainers via the repository's
+contact methods.
+
+9. This license may be amended by the project maintainers; changes will be
+posted in the repository. Contributions made under prior versions remain
+covered by the license in effect at the time of contribution.
+
+By using the Software, you accept the terms of this license.
