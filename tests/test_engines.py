@@ -22,3 +22,22 @@ def test_sentiment_engine():
 def test_macro_engine():
     engine = MacroEngine()
     assert engine.analyze(None) is None
+
+
+def test_macro_engine_sample_input():
+    engine = MacroEngine()
+    sample = {
+        "rate_regime": "Rising",
+        "inflation_trend": "Stable",
+        "fx_headwind_tailwind": "Neutral",
+        "commodity_links": ["Oil", "Copper"],
+        "sector": "Materials",
+        "notes": "Sample note",
+    }
+    out = engine.analyze(sample)
+    assert out is not None
+    assert out.rate_regime == "Rising"
+    assert out.inflation_trend == "Stable"
+    assert out.fx_headwind_tailwind == "Neutral"
+    assert out.commodity_links == ["Oil", "Copper"]
+    assert out.sector == "Materials"
