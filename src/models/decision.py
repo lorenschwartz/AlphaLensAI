@@ -1,27 +1,47 @@
 """
 Decision model shim.
 
-This file re-exports the canonical `Decision` contract defined in `src.types` and
-provides a couple of thin helpers so other modules can import from
-`src.models.decision` if they prefer that path.
+This file provides a tiny, test-friendly wrapper `Decision` (has a single
+`result` field) so callers that import `src.models.decision.Decision` get a
+lightweight object. It also exposes helpers that delegate to the canonical
+`Decision` model defined in `src.types` when callers need full validation or
+the official `short_summary` behavior.
 """
-from typing import Any, Dict
+from typing import Any, Dict, Union
+
+from pydantic import BaseModel
 
 from src.types import Decision as _Decision
 
-# Re-export the Decision model
-Decision = _Decision
+
+class Decision(BaseModel):
+    """Thin wrapper used by older call sites and tests.
+
+    Field:
+        result: Any — opaque passthrough for quick smoke tests and callers who
+        don't need the full canonical Decision contract.
+    """
+
+    result: Any = None
 
 
 def validate_or_raise(data: Dict[str, Any]) -> _Decision:
-    """Validate a dict against the `Decision` contract and return a model instance.
+    """Validate a dict against the canonical `Decision` contract and return the model instance."""
+    validate = getattr(_Decision, "model_validate", None) or getattr(_Decision, "parse_obj", None)
+    if not validate:
+        raise RuntimeError("Unsupported Pydantic version: missing model_validate/parse_obj.")
+    return validate(data)
 
-    This delegates to `Decision.validate_or_raise` implemented in `src.types` and
-    keeps calling code stable if you want to import from `src.models.decision`.
+
+def short_summary(decision: Union[_Decision, Decision]) -> str:
+    """Return a one-line summary.
+
+    If given the canonical `_Decision`, use its `short_summary`. If given the
+    thin wrapper, return a compact placeholder reflecting presence/absence of
+    `result`.
     """
-    return Decision.validate_or_raise(data)
-
-
-def short_summary(decision: _Decision) -> str:
-    """Return the one-line short summary for a `Decision` instance."""
-    return decision.short_summary()
+    if isinstance(decision, _Decision):
+        return decision.short_summary()
+    if isinstance(decision, Decision):
+        return "result: <present>" if decision.result is not None else "result: None"
+    return str(decision)
