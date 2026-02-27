@@ -6,10 +6,10 @@ This file re-exports the canonical `MacroIndustrySummary` contract from
 prefer that path. It also exposes tiny helpers for validation and a brief
 human-friendly summary.
 """
+
 from typing import Any, Dict, Optional
 
 from src.types import MacroIndustrySummary as _MacroIndustrySummary
-
 
 # Re-export under a convenient name used by other modules
 Macro = _MacroIndustrySummary
@@ -20,9 +20,13 @@ def validate_or_raise(data: Dict[str, Any]) -> _MacroIndustrySummary:
 
     Uses Pydantic v2/v1 compatibility helpers (`model_validate` / `parse_obj`).
     """
-    validate = getattr(Macro, "model_validate", None) or getattr(Macro, "parse_obj", None)
+    validate = getattr(Macro, "model_validate", None) or getattr(
+        Macro, "parse_obj", None
+    )
     if not validate:
-        raise RuntimeError("Unsupported Pydantic version: missing model_validate/parse_obj.")
+        raise RuntimeError(
+            "Unsupported Pydantic version: missing model_validate/parse_obj."
+        )
     return validate(data)
 
 

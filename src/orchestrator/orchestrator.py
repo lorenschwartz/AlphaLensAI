@@ -1,10 +1,13 @@
 """
 Orchestrator agent for coordinating pipeline modules.
 """
+
 from typing import Any
+
 
 class Orchestrator:
     """Coordinates agent modules and workflow."""
+
     def __init__(self) -> None:
         pass
 

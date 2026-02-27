@@ -12,6 +12,7 @@ from src.types import (
     MonitoringRule,
 )
 
+
 def _dummy_decision_dict():
     return {
         "as_of": "2025-08-11",
@@ -24,12 +25,12 @@ def _dummy_decision_dict():
         "thesis": [
             "Growing share in core market.",
             "Margin expansion from mix and scale.",
-            "Strong balance sheet enables buybacks."
+            "Strong balance sheet enables buybacks.",
         ],
         "key_risks": [
             "New entrant could compress pricing.",
             "Supply chain disruption risk.",
-            "Regulatory scrutiny in key region."
+            "Regulatory scrutiny in key region.",
         ],
         "catalysts_next_6_12m": [
             {"event": "Product refresh", "window": "Q4", "impact": "High"},
@@ -41,7 +42,7 @@ def _dummy_decision_dict():
             "blended": 121.5,
             "wacc": 0.093,
             "terminal_g": 0.02,
-            "peer_multiples_used": ["EV/EBITDA", "P/E"]
+            "peer_multiples_used": ["EV/EBITDA", "P/E"],
         },
         "scenarios": {
             "bull": {"prob": 0.25, "eps": 6.1, "fair_value": 150.0},
@@ -52,16 +53,13 @@ def _dummy_decision_dict():
             "trend": "Up",
             "ma_cross": "50>200",
             "rsi_14": 58.0,
-            "levels": {
-                "support": [105.0, 98.0],
-                "resistance": [118.0, 125.0]
-            },
+            "levels": {"support": [105.0, 98.0], "resistance": [118.0, 125.0]},
             "ma_20": 112.0,
             "ma_50": 110.0,
             "ma_200": 100.0,
             "macd_line": 1.2,
             "macd_signal": 0.9,
-            "atr_14": 2.5
+            "atr_14": 2.5,
         },
         "sentiment": {
             "analyst_consensus": "Buy",
@@ -70,23 +68,33 @@ def _dummy_decision_dict():
             "insider_net_buy_90d": -0.2,
             "news_sentiment_score": 0.12,
             "delta_analyst_upgrades_90d": 2,
-            "delta_avg_target_90d": 1.4
+            "delta_avg_target_90d": 1.4,
         },
         "citations": [
-            {"type": "filing", "id": "10Q-2025Q2", "url": "https://example.com/10q", "loc": "MD&A"},
+            {
+                "type": "filing",
+                "id": "10Q-2025Q2",
+                "url": "https://example.com/10q",
+                "loc": "MD&A",
+            },
             {"type": "news", "id": "n-001", "url": "https://example.com/news/1"},
-            {"type": "api", "id": "prices"}
+            {"type": "api", "id": "prices"},
         ],
         "assumptions": {
             "rev_cagr_3y": 8.5,
             "op_margin_trend": "expanding 80bps/yr",
-            "capex_pct_sales": 6.0
+            "capex_pct_sales": 6.0,
         },
         "monitoring": [
-            {"metric": "gross margin", "threshold": "< 42% for 2 qtrs", "action": "downgrade to HOLD"}
+            {
+                "metric": "gross margin",
+                "threshold": "< 42% for 2 qtrs",
+                "action": "downgrade to HOLD",
+            }
         ],
-        "artifacts": None
+        "artifacts": None,
     }
+
 
 def test_decision_model_roundtrip():
     data = _dummy_decision_dict()
@@ -104,6 +112,7 @@ def test_decision_model_roundtrip():
     p_sum = sum(d.prob for d in decision.scenarios.values())
     assert math.isclose(p_sum, 1.0, rel_tol=1e-9, abs_tol=1e-9)
 
+
 def test_technicals_bounds_and_levels():
     # RSI bounds enforced by schema (0..100)
     good = Technicals(
@@ -115,10 +124,12 @@ def test_technicals_bounds_and_levels():
     assert good.rsi_14 == 50.0
     assert good.levels.support and good.levels.resistance
 
+
 def test_sentiment_minimal_valid():
     # Minimal valid sentiment object
     sent = Sentiment(analyst_consensus="Hold")
     assert sent.analyst_consensus == "Hold"
+
 
 def test_valuation_model_basic():
     val = Valuation(
@@ -130,6 +141,7 @@ def test_valuation_model_basic():
         peer_multiples_used=["EV/EBITDA"],
     )
     assert val.blended == 105.0
+
 
 def test_build_decision_from_models():
     # Build via models to ensure type compatibility
@@ -154,14 +166,20 @@ def test_build_decision_from_models():
         risk_rating="Medium",
         thesis=["Solid topline growth", "Operating leverage coming through"],
         key_risks=["Execution risk", "Competitive pricing"],
-        catalysts_next_6_12m=[Catalyst(event="Earnings beat?", window="Q4", impact="High")],
+        catalysts_next_6_12m=[
+            Catalyst(event="Earnings beat?", window="Q4", impact="High")
+        ],
         valuation=v,
         scenarios={"bull": bull, "base": base, "bear": bear},
         technicals=t,
         sentiment=s,
         citations=[],
         assumptions={"rev_cagr_3y": 9.0},
-        monitoring=[MonitoringRule(metric="Op margin", threshold="< 15% for 2 qtrs", action="downgrade")],
+        monitoring=[
+            MonitoringRule(
+                metric="Op margin", threshold="< 15% for 2 qtrs", action="downgrade"
+            )
+        ],
     )
 
     assert isinstance(d, Decision)

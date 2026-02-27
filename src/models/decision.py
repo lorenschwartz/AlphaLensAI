@@ -7,6 +7,7 @@ lightweight object. It also exposes helpers that delegate to the canonical
 `Decision` model defined in `src.types` when callers need full validation or
 the official `short_summary` behavior.
 """
+
 from typing import Any, Dict, Union
 
 from pydantic import BaseModel
@@ -27,9 +28,13 @@ class Decision(BaseModel):
 
 def validate_or_raise(data: Dict[str, Any]) -> _Decision:
     """Validate a dict against the canonical `Decision` contract and return the model instance."""
-    validate = getattr(_Decision, "model_validate", None) or getattr(_Decision, "parse_obj", None)
+    validate = getattr(_Decision, "model_validate", None) or getattr(
+        _Decision, "parse_obj", None
+    )
     if not validate:
-        raise RuntimeError("Unsupported Pydantic version: missing model_validate/parse_obj.")
+        raise RuntimeError(
+            "Unsupported Pydantic version: missing model_validate/parse_obj."
+        )
     return validate(data)
 
 

@@ -1,6 +1,7 @@
 """
 Fundamentals engine for equity analysis.
 """
+
 from typing import Any, Dict, List, Optional
 from statistics import mean, pstdev
 
@@ -33,7 +34,9 @@ class FundamentalsEngine:
             return None
 
         # Revenue CAGR over 3 years (if at least 4 data points present)
-        rev_history: List[float] = data.get("revenue_history") or data.get("revenues") or []
+        rev_history: List[float] = (
+            data.get("revenue_history") or data.get("revenues") or []
+        )
         revenue_cagr_3y: Optional[float] = None
         try:
             if len(rev_history) >= 4:
@@ -46,7 +49,9 @@ class FundamentalsEngine:
             revenue_cagr_3y = None
 
         # Operating margin trend in basis points per year
-        opm_history: List[float] = data.get("op_margin_history") or data.get("op_margins") or []
+        opm_history: List[float] = (
+            data.get("op_margin_history") or data.get("op_margins") or []
+        )
         op_margin_trend_bps_per_year: Optional[float] = None
         try:
             if len(opm_history) >= 2:

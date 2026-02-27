@@ -4,6 +4,7 @@ Macro engine for equity analysis.
 Deterministic, test-friendly logic that converts simple macro inputs
 into a `MacroIndustrySummary` (from `src.types`).
 """
+
 from typing import Any, Dict, Optional
 
 from src.types import MacroIndustrySummary
