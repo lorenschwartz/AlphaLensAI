@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlphaLensAI</title>
+  <!-- Alpine.js — no build step required -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <style>
+    /* ---------- Reset & base ---------- */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:        #0f1117;
+      --surface:   #1a1d27;
+      --border:    #2a2e3e;
+      --accent:    #6c8fff;
+      --accent2:   #a78bfa;
+      --text:      #e2e8f0;
+      --muted:     #8892a4;
+      --buy:       #34d399;
+      --hold:      #fbbf24;
+      --sell:      #f87171;
+      --radius:    8px;
+      --font:      'Inter', system-ui, sans-serif;
+    }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0 0 4rem;
+    }
+
+    /* ---------- Nav ---------- */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .9rem 2rem;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(15,17,23,.92);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+    }
+    nav .logo { font-weight: 700; font-size: 1.15rem; letter-spacing: -.5px; }
+    nav .logo span { color: var(--accent); }
+    nav .badge {
+      font-size: .7rem;
+      background: var(--accent);
+      color: #fff;
+      padding: .15rem .45rem;
+      border-radius: 99px;
+      margin-left: .4rem;
+      vertical-align: middle;
+    }
+
+    /* ---------- Layout ---------- */
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+    h2 { font-size: 1.05rem; font-weight: 600; margin-bottom: 1.2rem; color: var(--accent2); }
+    .page-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin: 2rem 0 .4rem;
+    }
+    .page-subtitle { color: var(--muted); font-size: .9rem; margin-bottom: 2rem; }
+
+    /* ---------- Card ---------- */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    /* ---------- Grid helpers ---------- */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+    @media (max-width: 640px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+
+    /* ---------- Form controls ---------- */
+    label { display: block; font-size: .78rem; color: var(--muted); margin-bottom: .3rem; }
+    input, select, textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: .88rem;
+      padding: .5rem .75rem;
+      outline: none;
+      transition: border-color .15s;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 72px; }
+    select option { background: var(--surface); }
+
+    /* dynamic lists */
+    .list-row {
+      display: flex;
+      gap: .5rem;
+      margin-bottom: .45rem;
+      align-items: center;
+    }
+    .list-row input { flex: 1; }
+    .btn-rm {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 6px;
+      cursor: pointer;
+      padding: .3rem .6rem;
+      font-size: .8rem;
+      line-height: 1;
+      transition: color .15s, border-color .15s;
+    }
+    .btn-rm:hover { color: var(--sell); border-color: var(--sell); }
+    .btn-add {
+      background: none;
+      border: 1px dashed var(--border);
+      color: var(--accent);
+      border-radius: 6px;
+      cursor: pointer;
+      padding: .35rem .8rem;
+      font-size: .8rem;
+      margin-top: .3rem;
+      transition: border-color .15s;
+    }
+    .btn-add:hover { border-color: var(--accent); }
+
+    /* ---------- Primary buttons ---------- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .6rem 1.4rem;
+      border-radius: 7px;
+      font-size: .88rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: .88; }
+    .btn-secondary {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-row { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
+
+    /* spinner */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.25);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: inline-block;
+    }
+
+    /* ---------- Recommendation badge ---------- */
+    .reco-badge {
+      display: inline-block;
+      font-weight: 800;
+      font-size: 1.1rem;
+      letter-spacing: .5px;
+      padding: .25rem .9rem;
+      border-radius: 6px;
+    }
+    .reco-BUY  { background: rgba(52,211,153,.15); color: var(--buy); border: 1px solid rgba(52,211,153,.35); }
+    .reco-HOLD { background: rgba(251,191,36,.12); color: var(--hold); border: 1px solid rgba(251,191,36,.3); }
+    .reco-SELL { background: rgba(248,113,113,.12); color: var(--sell); border: 1px solid rgba(248,113,113,.3); }
+
+    /* ---------- Report sections ---------- */
+    .report-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 1rem 2rem;
+      margin-bottom: 1.5rem;
+    }
+    .report-ticker { font-size: 2rem; font-weight: 800; }
+    .stat-label { font-size: .7rem; color: var(--muted); margin-bottom: .15rem; }
+    .stat-value { font-size: 1rem; font-weight: 600; }
+    .stat-value.green { color: var(--buy); }
+    .stat-value.red   { color: var(--sell); }
+
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    th { text-align: left; color: var(--muted); font-weight: 500; padding: .4rem .6rem; border-bottom: 1px solid var(--border); }
+    td { padding: .55rem .6rem; border-bottom: 1px solid rgba(255,255,255,.04); }
+    tr:last-child td { border-bottom: none; }
+
+    .pill {
+      display: inline-block;
+      padding: .15rem .55rem;
+      border-radius: 99px;
+      font-size: .72rem;
+      font-weight: 600;
+    }
+    .pill-up   { background: rgba(52,211,153,.15); color: var(--buy); }
+    .pill-down { background: rgba(248,113,113,.12); color: var(--sell); }
+    .pill-side { background: rgba(251,191,36,.12);  color: var(--hold); }
+    .pill-buy  { background: rgba(52,211,153,.15);  color: var(--buy); }
+    .pill-hold { background: rgba(251,191,36,.12);  color: var(--hold); }
+    .pill-sell { background: rgba(248,113,113,.12); color: var(--sell); }
+
+    ul.bullets { list-style: none; padding: 0; }
+    ul.bullets li {
+      padding: .35rem 0 .35rem 1.1rem;
+      position: relative;
+      font-size: .88rem;
+      border-bottom: 1px solid rgba(255,255,255,.04);
+    }
+    ul.bullets li::before {
+      content: '›';
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+    ul.bullets li:last-child { border-bottom: none; }
+
+    /* ---------- Error ---------- */
+    .error-box {
+      background: rgba(248,113,113,.1);
+      border: 1px solid rgba(248,113,113,.35);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      color: var(--sell);
+      font-size: .88rem;
+      margin-bottom: 1rem;
+    }
+
+    /* ---------- Assumptions kv editor ---------- */
+    .kv-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: .5rem;
+      margin-bottom: .45rem;
+      align-items: center;
+    }
+
+    /* ---------- Tabs ---------- */
+    .tabs { display: flex; gap: .1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: .88rem;
+      padding: .6rem 1.1rem;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color .15s, border-color .15s;
+    }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-btn:hover:not(.active) { color: var(--text); }
+  </style>
+</head>
+<body x-data="alphaApp()" x-init="init()">
+
+  <!-- ====== Nav ====== -->
+  <nav>
+    <div class="logo">Alpha<span>Lens</span>AI <span class="badge">beta</span></div>
+    <div style="display:flex;gap:.75rem;align-items:center">
+      <span x-show="result" style="font-size:.8rem;color:var(--muted)" x-text="'Last run: ' + (result?.ticker ?? '')"></span>
+      <button class="btn btn-secondary" style="padding:.4rem .9rem;font-size:.8rem" @click="reset()">New analysis</button>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <!-- ====== Form ====== -->
+    <template x-if="!result">
+      <div>
+        <div class="page-title">Equity Analysis</div>
+        <p class="page-subtitle">Fill in the fields below and click <strong>Run analysis</strong> to get a structured decision.</p>
+
+        <!-- error -->
+        <div class="error-box" x-show="error" x-text="error"></div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+          <button class="tab-btn" :class="{active: tab==='core'}"       @click="tab='core'">Core</button>
+          <button class="tab-btn" :class="{active: tab==='engines'}"    @click="tab='engines'">Engines</button>
+          <button class="tab-btn" :class="{active: tab==='assumptions'}" @click="tab='assumptions'">Assumptions</button>
+        </div>
+
+        <!-- ---- Tab: Core ---- -->
+        <div x-show="tab==='core'">
+
+          <!-- Identity -->
+          <div class="card">
+            <h2>Identity</h2>
+            <div class="grid-3">
+              <div>
+                <label>Ticker *</label>
+                <input x-model="form.ticker" placeholder="AAPL" @input="form.ticker = form.ticker.toUpperCase()" />
+              </div>
+              <div>
+                <label>As-of date *</label>
+                <input type="date" x-model="form.as_of" />
+              </div>
+              <div>
+                <label>Horizon (months)</label>
+                <input type="number" x-model.number="form.horizon_months" min="1" max="60" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Call -->
+          <div class="card">
+            <h2>Recommendation</h2>
+            <div class="grid-3">
+              <div>
+                <label>Recommendation *</label>
+                <select x-model="form.recommendation">
+                  <option value="BUY">BUY</option>
+                  <option value="HOLD">HOLD</option>
+                  <option value="SELL">SELL</option>
+                </select>
+              </div>
+              <div>
+                <label>Target price (12m) *</label>
+                <input type="number" x-model.number="form.target_price_12m" step="0.01" />
+              </div>
+              <div>
+                <label>Expected total return (%)</label>
+                <input type="number" x-model.number="form.expected_total_return_pct" step="0.1" />
+              </div>
+              <div>
+                <label>Risk rating *</label>
+                <select x-model="form.risk_rating">
+                  <option>Low</option>
+                  <option>Medium</option>
+                  <option>High</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Thesis & risks -->
+          <div class="card">
+            <h2>Thesis & risks</h2>
+            <div class="grid-2">
+              <div>
+                <label style="margin-bottom:.6rem">Thesis bullets *</label>
+                <template x-for="(item, i) in form.thesis" :key="i">
+                  <div class="list-row">
+                    <input x-model="form.thesis[i]" placeholder="Bullet point…" />
+                    <button class="btn-rm" @click="form.thesis.splice(i,1)">✕</button>
+                  </div>
+                </template>
+                <button class="btn-add" @click="form.thesis.push('')">+ Add bullet</button>
+              </div>
+              <div>
+                <label style="margin-bottom:.6rem">Key risks *</label>
+                <template x-for="(item, i) in form.key_risks" :key="i">
+                  <div class="list-row">
+                    <input x-model="form.key_risks[i]" placeholder="Risk item…" />
+                    <button class="btn-rm" @click="form.key_risks.splice(i,1)">✕</button>
+                  </div>
+                </template>
+                <button class="btn-add" @click="form.key_risks.push('')">+ Add risk</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Valuation -->
+          <div class="card">
+            <h2>Valuation</h2>
+            <div class="grid-3">
+              <div>
+                <label>Blended fair value * ($)</label>
+                <input type="number" x-model.number="form.valuation.blended" step="0.01" />
+              </div>
+              <div>
+                <label>DCF fair value ($)</label>
+                <input type="number" x-model.number="form.valuation.dcf_fair_value" step="0.01" placeholder="optional" />
+              </div>
+              <div>
+                <label>Multiples fair value ($)</label>
+                <input type="number" x-model.number="form.valuation.multiples_fair_value" step="0.01" placeholder="optional" />
+              </div>
+              <div>
+                <label>WACC</label>
+                <input type="number" x-model.number="form.valuation.wacc" step="0.001" placeholder="e.g. 0.09" />
+              </div>
+              <div>
+                <label>Terminal growth rate</label>
+                <input type="number" x-model.number="form.valuation.terminal_g" step="0.001" placeholder="e.g. 0.025" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Scenarios -->
+          <div class="card">
+            <h2>Scenarios</h2>
+            <div class="grid-3">
+              <template x-for="key in ['bull','base','bear']" :key="key">
+                <div style="border:1px solid var(--border);border-radius:6px;padding:1rem">
+                  <div style="font-weight:600;margin-bottom:.75rem;text-transform:capitalize" x-text="key"></div>
+                  <label>Probability (0–1)</label>
+                  <input type="number" x-model.number="form.scenarios[key].prob" step="0.01" min="0" max="1" />
+                  <label style="margin-top:.6rem">Fair value ($)</label>
+                  <input type="number" x-model.number="form.scenarios[key].fair_value" step="0.01" />
+                  <label style="margin-top:.6rem">EPS (optional)</label>
+                  <input type="number" x-model.number="form.scenarios[key].eps" step="0.01" placeholder="optional" />
+                </div>
+              </template>
+            </div>
+          </div>
+
+        </div> <!-- /tab core -->
+
+        <!-- ---- Tab: Engines ---- -->
+        <div x-show="tab==='engines'">
+
+          <!-- Technicals -->
+          <div class="card">
+            <h2>Technicals (pre-computed)</h2>
+            <p style="font-size:.8rem;color:var(--muted);margin-bottom:1rem">Leave empty to use raw price series or engine defaults.</p>
+            <div class="grid-3">
+              <div>
+                <label>Trend</label>
+                <select x-model="form.technicals.trend">
+                  <option value="">— auto —</option>
+                  <option>Up</option><option>Down</option><option>Sideways</option>
+                </select>
+              </div>
+              <div>
+                <label>MA Cross</label>
+                <select x-model="form.technicals.ma_cross">
+                  <option value="">— auto —</option>
+                  <option value="50>200">50 &gt; 200 (Golden)</option>
+                  <option value="50<200">50 &lt; 200 (Death)</option>
+                  <option value="none">none</option>
+                </select>
+              </div>
+              <div>
+                <label>RSI (14)</label>
+                <input type="number" x-model.number="form.technicals.rsi_14" step="0.1" min="0" max="100" placeholder="0–100" />
+              </div>
+              <div>
+                <label>MA 50</label>
+                <input type="number" x-model.number="form.technicals.ma_50" step="0.01" placeholder="optional" />
+              </div>
+              <div>
+                <label>MA 200</label>
+                <input type="number" x-model.number="form.technicals.ma_200" step="0.01" placeholder="optional" />
+              </div>
+              <div>
+                <label>ATR (14)</label>
+                <input type="number" x-model.number="form.technicals.atr_14" step="0.01" placeholder="optional" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Sentiment -->
+          <div class="card">
+            <h2>Sentiment</h2>
+            <div class="grid-3">
+              <div>
+                <label>Analyst consensus</label>
+                <select x-model="form.sentiment.analyst_consensus">
+                  <option value="">— none —</option>
+                  <option>Buy</option><option>Strong Buy</option><option>Outperform</option>
+                  <option>Hold</option><option>Neutral</option>
+                  <option>Sell</option><option>Underperform</option>
+                </select>
+              </div>
+              <div>
+                <label>Avg. target ($)</label>
+                <input type="number" x-model.number="form.sentiment.avg_target" step="0.01" placeholder="optional" />
+              </div>
+              <div>
+                <label>Short interest (% float)</label>
+                <input type="number" x-model.number="form.sentiment.short_interest_pct_float" step="0.01" placeholder="optional" />
+              </div>
+              <div>
+                <label>News sentiment (−1 to +1)</label>
+                <input type="number" x-model.number="form.sentiment.news_sentiment_score" step="0.01" min="-1" max="1" placeholder="optional" />
+              </div>
+              <div>
+                <label>Insider net buy 90d ($)</label>
+                <input type="number" x-model.number="form.sentiment.insider_net_buy_90d" step="1" placeholder="optional" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Fundamentals -->
+          <div class="card">
+            <h2>Fundamentals (raw series)</h2>
+            <div class="grid-2">
+              <div>
+                <label>Revenue history (comma-separated)</label>
+                <input x-model="raw.revenues" placeholder="100, 110, 121, 133" />
+              </div>
+              <div>
+                <label>Op margin history (comma-separated)</label>
+                <input x-model="raw.op_margins" placeholder="0.12, 0.14, 0.15" />
+              </div>
+              <div>
+                <label>FCF history (comma-separated)</label>
+                <input x-model="raw.fcfs" placeholder="80, 90, 95, 102" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Macro -->
+          <div class="card">
+            <h2>Macro / Industry</h2>
+            <div class="grid-3">
+              <div>
+                <label>Rate regime</label>
+                <select x-model="form.macro.rate_regime">
+                  <option value="">— none —</option>
+                  <option>Rising</option><option>Falling</option><option>Stable</option>
+                </select>
+              </div>
+              <div>
+                <label>Inflation trend</label>
+                <select x-model="form.macro.inflation_trend">
+                  <option value="">— none —</option>
+                  <option>Rising</option><option>Falling</option><option>Stable</option>
+                </select>
+              </div>
+              <div>
+                <label>FX exposure</label>
+                <select x-model="form.macro.fx_headwind_tailwind">
+                  <option value="">— none —</option>
+                  <option>Headwind</option><option>Tailwind</option><option>Neutral</option>
+                </select>
+              </div>
+              <div>
+                <label>Sector</label>
+                <input x-model="form.macro.sector" placeholder="Technology" />
+              </div>
+              <div style="grid-column:span 2">
+                <label>Notes</label>
+                <input x-model="form.macro.notes" placeholder="Any additional context…" />
+              </div>
+            </div>
+          </div>
+
+        </div> <!-- /tab engines -->
+
+        <!-- ---- Tab: Assumptions ---- -->
+        <div x-show="tab==='assumptions'">
+          <div class="card">
+            <h2>Assumptions override</h2>
+            <p style="font-size:.8rem;color:var(--muted);margin-bottom:1rem">
+              Add key-value pairs to override computed engine values.
+              Keys match the <code style="color:var(--accent)">assumptions</code> dict in the Decision.
+              Engine-computed values are only set here if you leave the key absent.
+            </p>
+            <template x-for="(kv, i) in assumptions" :key="i">
+              <div class="kv-row">
+                <input x-model="assumptions[i].key" placeholder="e.g. rev_cagr_3y" />
+                <input x-model="assumptions[i].val" placeholder="e.g. 0.12" />
+                <button class="btn-rm" @click="assumptions.splice(i,1)">✕</button>
+              </div>
+            </template>
+            <button class="btn-add" @click="assumptions.push({key:'',val:''})">+ Add assumption</button>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <div class="btn-row" style="margin-top:1.5rem">
+          <button
+            class="btn btn-primary"
+            :disabled="loading"
+            @click="runAnalysis()"
+          >
+            <span x-show="loading" class="spinner"></span>
+            <span x-text="loading ? 'Running…' : 'Run analysis'"></span>
+          </button>
+          <button class="btn btn-secondary" @click="loadTemplate()" :disabled="!form.ticker || loading">
+            Load template for <span x-text="form.ticker || '…'"></span>
+          </button>
+          <span style="font-size:.8rem;color:var(--muted)" x-show="loading">Calling pipeline…</span>
+        </div>
+      </div>
+    </template>
+
+    <!-- ====== Report ====== -->
+    <template x-if="result">
+      <div>
+        <!-- Header -->
+        <div class="card" style="margin-top:1.5rem">
+          <div class="report-header">
+            <div>
+              <div class="report-ticker" x-text="result.ticker"></div>
+              <div style="color:var(--muted);font-size:.8rem" x-text="'As of ' + result.as_of + ' · ' + result.horizon_months + 'm horizon'"></div>
+            </div>
+            <div :class="'reco-badge reco-' + result.recommendation" x-text="result.recommendation"></div>
+            <div>
+              <div class="stat-label">Target price</div>
+              <div class="stat-value" x-text="'$' + result.target_price_12m?.toFixed(2)"></div>
+            </div>
+            <div>
+              <div class="stat-label">Expected return</div>
+              <div class="stat-value" :class="result.expected_total_return_pct >= 0 ? 'green' : 'red'"
+                   x-text="(result.expected_total_return_pct >= 0 ? '+' : '') + result.expected_total_return_pct?.toFixed(1) + '%'"></div>
+            </div>
+            <div>
+              <div class="stat-label">Risk</div>
+              <div class="stat-value" x-text="result.risk_rating"></div>
+            </div>
+          </div>
+
+          <!-- Thesis & risks -->
+          <div class="grid-2">
+            <div>
+              <div style="font-size:.78rem;color:var(--muted);margin-bottom:.5rem;font-weight:600">THESIS</div>
+              <ul class="bullets">
+                <template x-for="b in result.thesis" :key="b">
+                  <li x-text="b"></li>
+                </template>
+              </ul>
+            </div>
+            <div>
+              <div style="font-size:.78rem;color:var(--muted);margin-bottom:.5rem;font-weight:600">KEY RISKS</div>
+              <ul class="bullets">
+                <template x-for="r in result.key_risks" :key="r">
+                  <li x-text="r"></li>
+                </template>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row: Scenarios + Valuation -->
+        <div class="grid-2">
+          <div class="card">
+            <h2>Scenarios</h2>
+            <table>
+              <thead><tr><th>Case</th><th>Prob</th><th>Fair value</th><th>EPS</th></tr></thead>
+              <tbody>
+                <template x-for="[k, s] in Object.entries(result.scenarios || {})" :key="k">
+                  <tr>
+                    <td style="text-transform:capitalize;font-weight:600" x-text="k"></td>
+                    <td x-text="(s.prob * 100).toFixed(0) + '%'"></td>
+                    <td x-text="'$' + s.fair_value?.toFixed(2)"></td>
+                    <td x-text="s.eps != null ? s.eps.toFixed(2) : '—'"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card">
+            <h2>Valuation</h2>
+            <table>
+              <tbody>
+                <tr><td style="color:var(--muted)">Blended</td>
+                    <td style="font-weight:700" x-text="'$' + result.valuation?.blended?.toFixed(2)"></td></tr>
+                <tr x-show="result.valuation?.dcf_fair_value != null">
+                    <td style="color:var(--muted)">DCF</td>
+                    <td x-text="'$' + result.valuation?.dcf_fair_value?.toFixed(2)"></td></tr>
+                <tr x-show="result.valuation?.multiples_fair_value != null">
+                    <td style="color:var(--muted)">Multiples</td>
+                    <td x-text="'$' + result.valuation?.multiples_fair_value?.toFixed(2)"></td></tr>
+                <tr x-show="result.valuation?.wacc != null">
+                    <td style="color:var(--muted)">WACC</td>
+                    <td x-text="(result.valuation?.wacc * 100)?.toFixed(1) + '%'"></td></tr>
+                <tr x-show="result.valuation?.terminal_g != null">
+                    <td style="color:var(--muted)">Terminal g</td>
+                    <td x-text="(result.valuation?.terminal_g * 100)?.toFixed(1) + '%'"></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Row: Technicals + Sentiment -->
+        <div class="grid-2">
+          <div class="card">
+            <h2>Technicals</h2>
+            <table>
+              <tbody>
+                <tr><td style="color:var(--muted)">Trend</td>
+                    <td>
+                      <span :class="'pill ' + (result.technicals?.trend==='Up'?'pill-up':result.technicals?.trend==='Down'?'pill-down':'pill-side')"
+                            x-text="result.technicals?.trend"></span>
+                    </td></tr>
+                <tr><td style="color:var(--muted)">MA Cross</td>
+                    <td x-text="result.technicals?.ma_cross"></td></tr>
+                <tr><td style="color:var(--muted)">RSI (14)</td>
+                    <td x-text="result.technicals?.rsi_14?.toFixed(1)"></td></tr>
+                <tr x-show="result.technicals?.ma_50 != null">
+                    <td style="color:var(--muted)">MA 50</td>
+                    <td x-text="result.technicals?.ma_50?.toFixed(2)"></td></tr>
+                <tr x-show="result.technicals?.ma_200 != null">
+                    <td style="color:var(--muted)">MA 200</td>
+                    <td x-text="result.technicals?.ma_200?.toFixed(2)"></td></tr>
+                <tr x-show="result.technicals?.atr_14 != null">
+                    <td style="color:var(--muted)">ATR (14)</td>
+                    <td x-text="result.technicals?.atr_14?.toFixed(2)"></td></tr>
+                <template x-if="result.technicals?.levels?.support?.length">
+                  <tr><td style="color:var(--muted)">Support</td>
+                      <td x-text="result.technicals.levels.support.map(v=>'$'+v.toFixed(2)).join(', ')"></td></tr>
+                </template>
+                <template x-if="result.technicals?.levels?.resistance?.length">
+                  <tr><td style="color:var(--muted)">Resistance</td>
+                      <td x-text="result.technicals.levels.resistance.map(v=>'$'+v.toFixed(2)).join(', ')"></td></tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card">
+            <h2>Sentiment</h2>
+            <table>
+              <tbody>
+                <tr><td style="color:var(--muted)">Consensus</td>
+                    <td>
+                      <span :class="'pill ' + (result.sentiment?.analyst_consensus==='Buy'?'pill-buy':result.sentiment?.analyst_consensus==='Sell'?'pill-sell':'pill-hold')"
+                            x-text="result.sentiment?.analyst_consensus"></span>
+                    </td></tr>
+                <tr x-show="result.sentiment?.avg_target != null">
+                    <td style="color:var(--muted)">Avg target</td>
+                    <td x-text="'$' + result.sentiment?.avg_target?.toFixed(2)"></td></tr>
+                <tr x-show="result.sentiment?.short_interest_pct_float != null">
+                    <td style="color:var(--muted)">Short interest</td>
+                    <td x-text="result.sentiment?.short_interest_pct_float?.toFixed(1) + '%'"></td></tr>
+                <tr x-show="result.sentiment?.news_sentiment_score != null">
+                    <td style="color:var(--muted)">News sentiment</td>
+                    <td x-text="result.sentiment?.news_sentiment_score?.toFixed(2)"></td></tr>
+                <tr x-show="result.sentiment?.insider_net_buy_90d != null">
+                    <td style="color:var(--muted)">Insider 90d</td>
+                    <td x-text="'$' + (result.sentiment?.insider_net_buy_90d / 1e6)?.toFixed(1) + 'M'"></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Assumptions -->
+        <template x-if="Object.keys(result.assumptions || {}).length">
+          <div class="card">
+            <h2>Engine assumptions</h2>
+            <table>
+              <thead><tr><th>Key</th><th>Value</th></tr></thead>
+              <tbody>
+                <template x-for="[k, v] in Object.entries(result.assumptions)" :key="k">
+                  <tr>
+                    <td style="color:var(--muted);font-family:monospace;font-size:.82rem" x-text="k"></td>
+                    <td x-text="typeof v === 'number' ? v.toFixed(4) : v"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </template>
+
+        <!-- Monitoring rules -->
+        <template x-if="result.monitoring?.length">
+          <div class="card">
+            <h2>Monitoring rules</h2>
+            <table>
+              <thead><tr><th>Metric</th><th>Threshold</th><th>Action</th></tr></thead>
+              <tbody>
+                <template x-for="m in result.monitoring" :key="m.metric">
+                  <tr>
+                    <td x-text="m.metric"></td>
+                    <td x-text="m.threshold"></td>
+                    <td x-text="m.action"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </template>
+
+        <!-- Re-run button -->
+        <div class="btn-row" style="margin-top:1rem">
+          <button class="btn btn-primary" :disabled="loading" @click="rerun()">
+            <span x-show="loading" class="spinner"></span>
+            <span x-text="loading ? 'Re-running…' : 'Re-run with overrides'"></span>
+          </button>
+          <button class="btn btn-secondary" @click="reset()">New analysis</button>
+        </div>
+
+      </div>
+    </template>
+
+  </div> <!-- /container -->
+
+  <script>
+    function alphaApp() {
+      return {
+        tab: 'core',
+        loading: false,
+        error: null,
+        result: null,
+        lastPayload: null,
+        assumptions: [],
+
+        /* ---- default form state ---- */
+        raw: { revenues: '', op_margins: '', fcfs: '' },
+        form: {
+          ticker: '',
+          as_of: new Date().toISOString().slice(0, 10),
+          recommendation: 'HOLD',
+          target_price_12m: 0,
+          expected_total_return_pct: 0,
+          horizon_months: 12,
+          risk_rating: 'Medium',
+          thesis: [''],
+          key_risks: [''],
+          valuation: { blended: 0, dcf_fair_value: null, multiples_fair_value: null, wacc: null, terminal_g: null },
+          scenarios: {
+            bull: { prob: 0.25, fair_value: 0, eps: null },
+            base: { prob: 0.50, fair_value: 0, eps: null },
+            bear: { prob: 0.25, fair_value: 0, eps: null },
+          },
+          technicals: { trend: '', ma_cross: '', rsi_14: null, ma_50: null, ma_200: null, atr_14: null },
+          sentiment: { analyst_consensus: '', avg_target: null, short_interest_pct_float: null, news_sentiment_score: null, insider_net_buy_90d: null },
+          macro: { rate_regime: '', inflation_trend: '', fx_headwind_tailwind: '', sector: '', notes: '' },
+        },
+
+        /* ---- lifecycle ---- */
+        init() {
+          // base URL is the page origin — works with uvicorn default port
+          this.apiBase = window.location.origin.replace(/:\d+$/, '') + ':8000';
+        },
+
+        reset() {
+          this.result = null;
+          this.error = null;
+          this.lastPayload = null;
+        },
+
+        /* ---- load template from GET /analyze/{ticker} ---- */
+        async loadTemplate() {
+          const t = this.form.ticker.trim().toUpperCase();
+          if (!t) return;
+          this.loading = true; this.error = null;
+          try {
+            const res = await fetch(`${this.apiBase}/analyze/${t}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const tpl = await res.json();
+            this.form.as_of = tpl.as_of;
+            this.form.horizon_months = tpl.horizon_months ?? 12;
+          } catch (e) {
+            this.error = 'Could not load template: ' + e.message;
+          } finally {
+            this.loading = false;
+          }
+        },
+
+        /* ---- build payload ---- */
+        buildPayload() {
+          const parseCSV = s => s.split(',').map(x => parseFloat(x.trim())).filter(n => !isNaN(n));
+
+          const payload = JSON.parse(JSON.stringify(this.form));
+
+          // strip empty strings from optional enums
+          ['trend','ma_cross'].forEach(k => { if (!payload.technicals[k]) delete payload.technicals[k]; });
+          if (!payload.sentiment.analyst_consensus) delete payload.sentiment.analyst_consensus;
+          ['rate_regime','inflation_trend','fx_headwind_tailwind'].forEach(k => {
+            if (!payload.macro[k]) delete payload.macro[k];
+          });
+          if (!payload.macro.sector) delete payload.macro.sector;
+          if (!payload.macro.notes) delete payload.macro.notes;
+
+          // clean null/empty technicals
+          const cleanNulls = obj => Object.fromEntries(Object.entries(obj).filter(([,v]) => v !== null && v !== ''));
+          payload.technicals = cleanNulls(payload.technicals);
+          payload.sentiment = cleanNulls(payload.sentiment);
+          payload.macro = Object.keys(payload.macro).length ? payload.macro : null;
+
+          // fundamentals from raw CSV
+          const funData = {};
+          if (this.raw.revenues.trim())   funData.revenue_history  = parseCSV(this.raw.revenues);
+          if (this.raw.op_margins.trim()) funData.op_margin_history = parseCSV(this.raw.op_margins);
+          if (this.raw.fcfs.trim())       funData.fcf_history       = parseCSV(this.raw.fcfs);
+          payload.fundamentals = Object.keys(funData).length ? funData : null;
+
+          // assumptions kv
+          const asmpt = {};
+          this.assumptions.forEach(({key, val}) => {
+            if (key.trim()) asmpt[key.trim()] = isNaN(parseFloat(val)) ? val : parseFloat(val);
+          });
+          payload.assumptions = Object.keys(asmpt).length ? asmpt : null;
+
+          // filter empty thesis/risks
+          payload.thesis     = payload.thesis.filter(s => s.trim());
+          payload.key_risks  = payload.key_risks.filter(s => s.trim());
+
+          // nullify empty optional valuation fields
+          ['dcf_fair_value','multiples_fair_value','wacc','terminal_g'].forEach(k => {
+            if (payload.valuation[k] === null || payload.valuation[k] === '') {
+              delete payload.valuation[k];
+            }
+          });
+
+          // nullify empty scenario eps
+          ['bull','base','bear'].forEach(k => {
+            if (payload.scenarios[k].eps === null || payload.scenarios[k].eps === '') {
+              delete payload.scenarios[k].eps;
+            }
+          });
+
+          return payload;
+        },
+
+        /* ---- run analysis ---- */
+        async runAnalysis() {
+          this.error = null;
+          const payload = this.buildPayload();
+          if (!payload.ticker) { this.error = 'Ticker is required.'; return; }
+          if (!payload.thesis.length) { this.error = 'At least one thesis bullet is required.'; return; }
+          if (!payload.key_risks.length) { this.error = 'At least one key risk is required.'; return; }
+          this.lastPayload = payload;
+          await this._post(payload);
+        },
+
+        /* ---- re-run (same payload, update assumptions inline) ---- */
+        async rerun() {
+          if (!this.lastPayload) return;
+          const payload = JSON.parse(JSON.stringify(this.lastPayload));
+          // Merge current assumptions on top
+          const asmpt = {};
+          this.assumptions.forEach(({key, val}) => {
+            if (key.trim()) asmpt[key.trim()] = isNaN(parseFloat(val)) ? val : parseFloat(val);
+          });
+          payload.assumptions = Object.keys(asmpt).length ? asmpt : null;
+          this.result = null;
+          await this._post(payload);
+        },
+
+        async _post(payload) {
+          this.loading = true; this.error = null;
+          try {
+            const res = await fetch(`${this.apiBase}/analyze`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            if (!res.ok) {
+              let msg = `HTTP ${res.status}`;
+              try {
+                const err = await res.json();
+                msg = JSON.stringify(err.detail ?? err, null, 2);
+              } catch (_) {}
+              throw new Error(msg);
+            }
+            this.result = await res.json();
+            // Populate assumptions editor from result
+            this.assumptions = Object.entries(this.result.assumptions ?? {}).map(([k,v]) => ({key:k, val:String(v)}));
+          } catch (e) {
+            this.error = e.message;
+          } finally {
+            this.loading = false;
+          }
+        },
+      };
+    }
+  </script>
+</body>
+</html>

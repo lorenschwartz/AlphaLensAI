@@ -288,6 +288,162 @@ def test_sentiment_engine():
 
 
 # ---------------------------------------------------------------------------
+# SentimentEngine — full coverage
+# ---------------------------------------------------------------------------
+
+
+def test_sentiment_engine_none_returns_none():
+    assert SentimentEngine().analyze(None) is None
+
+
+def test_sentiment_engine_empty_dict_returns_none():
+    assert SentimentEngine().analyze({}) is None
+
+
+def test_sentiment_engine_happy_path():
+    engine = SentimentEngine()
+    data = {
+        "analyst_consensus": "Buy",
+        "avg_target": 130.0,
+        "short_interest_pct_float": 2.5,
+        "news_sentiment_score": 0.6,
+    }
+    result = engine.analyze(data)
+    assert result is not None
+    assert result.analyst_consensus == "Buy"
+    assert result.avg_target == 130.0
+    assert result.short_interest_pct_float == 2.5
+    assert result.news_sentiment_score == 0.6
+
+
+def test_sentiment_engine_returns_sentiment_type():
+    from src.types import Sentiment
+
+    result = SentimentEngine().analyze({"analyst_consensus": "Hold"})
+    assert isinstance(result, Sentiment)
+
+
+def test_sentiment_engine_consensus_buy_variants():
+    eng = SentimentEngine()
+    for raw in ["Buy", "Strong Buy", "Outperform", "Overweight", "strong_buy"]:
+        r = eng.analyze({"analyst_consensus": raw})
+        assert r is not None and r.analyst_consensus == "Buy", f"Failed for: {raw!r}"
+
+
+def test_sentiment_engine_consensus_sell_variants():
+    eng = SentimentEngine()
+    for raw in ["Sell", "Strong Sell", "Underperform", "Underweight"]:
+        r = eng.analyze({"analyst_consensus": raw})
+        assert r is not None and r.analyst_consensus == "Sell", f"Failed for: {raw!r}"
+
+
+def test_sentiment_engine_consensus_hold_variants():
+    eng = SentimentEngine()
+    for raw in ["Hold", "Neutral", "Market Perform", "Equal Weight"]:
+        r = eng.analyze({"analyst_consensus": raw})
+        assert r is not None and r.analyst_consensus == "Hold", f"Failed for: {raw!r}"
+
+
+def test_sentiment_engine_unknown_consensus_defaults_to_hold():
+    result = SentimentEngine().analyze({"analyst_consensus": "XYZ Rating"})
+    assert result is not None
+    assert result.analyst_consensus == "Hold"
+
+
+def test_sentiment_engine_missing_consensus_defaults_to_hold():
+    result = SentimentEngine().analyze({"avg_target": 100.0})
+    assert result is not None
+    assert result.analyst_consensus == "Hold"
+
+
+def test_sentiment_engine_alias_short_interest_pct():
+    """short_interest_pct is accepted as an alias for short_interest_pct_float."""
+    result = SentimentEngine().analyze(
+        {"analyst_consensus": "Hold", "short_interest_pct": 5.0}
+    )
+    assert result is not None
+    assert result.short_interest_pct_float == 5.0
+
+
+def test_sentiment_engine_short_interest_clamped_to_zero():
+    result = SentimentEngine().analyze(
+        {"analyst_consensus": "Hold", "short_interest_pct_float": -3.0}
+    )
+    assert result is not None
+    assert result.short_interest_pct_float >= 0.0
+
+
+def test_sentiment_engine_news_score_clamped_high():
+    result = SentimentEngine().analyze(
+        {"analyst_consensus": "Buy", "news_sentiment_score": 9.9}
+    )
+    assert result is not None
+    assert result.news_sentiment_score == 1.0
+
+
+def test_sentiment_engine_news_score_clamped_low():
+    result = SentimentEngine().analyze(
+        {"analyst_consensus": "Buy", "news_sentiment_score": -9.9}
+    )
+    assert result is not None
+    assert result.news_sentiment_score == -1.0
+
+
+def test_sentiment_engine_news_score_in_range_unchanged():
+    result = SentimentEngine().analyze(
+        {"analyst_consensus": "Hold", "news_sentiment_score": 0.3}
+    )
+    assert result is not None
+    assert math.isclose(result.news_sentiment_score, 0.3, rel_tol=1e-9)
+
+
+def test_sentiment_engine_invalid_avg_target_yields_none_field():
+    result = SentimentEngine().analyze(
+        {"analyst_consensus": "Buy", "avg_target": "not-a-number"}
+    )
+    assert result is not None
+    assert result.avg_target is None
+
+
+def test_sentiment_engine_invalid_news_score_yields_none_field():
+    result = SentimentEngine().analyze(
+        {"analyst_consensus": "Hold", "news_sentiment_score": "bad"}
+    )
+    assert result is not None
+    assert result.news_sentiment_score is None
+
+
+def test_sentiment_engine_delta_fields_passed_through():
+    result = SentimentEngine().analyze(
+        {
+            "analyst_consensus": "Buy",
+            "delta_analyst_upgrades_90d": 3,
+            "delta_avg_target_90d": 5.0,
+        }
+    )
+    assert result is not None
+    assert result.delta_analyst_upgrades_90d == 3
+    assert result.delta_avg_target_90d == 5.0
+
+
+def test_sentiment_engine_insider_net_buy():
+    result = SentimentEngine().analyze(
+        {"analyst_consensus": "Buy", "insider_net_buy_90d": 1_500_000.0}
+    )
+    assert result is not None
+    assert result.insider_net_buy_90d == 1_500_000.0
+
+
+def test_sentiment_engine_partial_data_no_exception():
+    """Only required field available — no exception, optional fields are None."""
+    result = SentimentEngine().analyze({"analyst_consensus": "Sell"})
+    assert result is not None
+    assert result.avg_target is None
+    assert result.short_interest_pct_float is None
+    assert result.news_sentiment_score is None
+
+
+# ---------------------------------------------------------------------------
 # MacroEngine
 # ---------------------------------------------------------------------------
 
