@@ -1,15 +1,22 @@
 # tests/test_types.py
 
 import math
+
+import pytest
+from pydantic import ValidationError
+
 from src.types import (
-    Decision,
-    Technicals,
-    Sentiment,
-    Valuation,
-    Scenario,
-    Levels,
     Catalyst,
+    Citation,
+    Decision,
+    FundamentalsSummary,
+    Levels,
+    MacroIndustrySummary,
     MonitoringRule,
+    Scenario,
+    Sentiment,
+    Technicals,
+    Valuation,
 )
 
 
@@ -184,3 +191,168 @@ def test_build_decision_from_models():
 
     assert isinstance(d, Decision)
     assert "→" in d.short_summary()
+
+
+# ---------------------------------------------------------------------------
+# Pydantic validation — rejection of invalid values
+# ---------------------------------------------------------------------------
+
+
+def test_technicals_rsi_above_100_rejected():
+    """RSI > 100 violates the ge/le constraint and must be rejected."""
+    with pytest.raises((ValidationError, ValueError)):
+        Technicals(trend="Up", ma_cross="none", rsi_14=101.0, levels=Levels())
+
+
+def test_technicals_rsi_below_0_rejected():
+    """RSI < 0 violates the ge/le constraint and must be rejected."""
+    with pytest.raises((ValidationError, ValueError)):
+        Technicals(trend="Up", ma_cross="none", rsi_14=-1.0, levels=Levels())
+
+
+def test_scenario_prob_above_1_rejected():
+    """Probability > 1 violates the ge/le constraint and must be rejected."""
+    with pytest.raises((ValidationError, ValueError)):
+        Scenario(prob=1.5, fair_value=100.0)
+
+
+def test_scenario_prob_below_0_rejected():
+    """Probability < 0 violates the ge/le constraint and must be rejected."""
+    with pytest.raises((ValidationError, ValueError)):
+        Scenario(prob=-0.1, fair_value=100.0)
+
+
+def test_decision_invalid_recommendation_rejected():
+    """An unrecognised Reco literal is rejected by validate_or_raise."""
+    data = _dummy_decision_dict()
+    data["recommendation"] = "STRONG_BUY"
+    with pytest.raises((ValidationError, ValueError)):
+        Decision.validate_or_raise(data)
+
+
+def test_decision_missing_required_field_rejected():
+    """Omitting a required field raises a validation error."""
+    data = _dummy_decision_dict()
+    del data["ticker"]
+    with pytest.raises((ValidationError, ValueError)):
+        Decision.validate_or_raise(data)
+
+
+# ---------------------------------------------------------------------------
+# Building-block models
+# ---------------------------------------------------------------------------
+
+
+def test_levels_defaults_to_empty_lists():
+    """Levels with no arguments produces empty support and resistance lists."""
+    lev = Levels()
+    assert lev.support == []
+    assert lev.resistance == []
+
+
+def test_levels_with_values():
+    lev = Levels(support=[95.0, 100.0], resistance=[110.0, 115.0])
+    assert lev.support == [95.0, 100.0]
+    assert lev.resistance == [110.0, 115.0]
+
+
+def test_catalyst_default_impact():
+    """Catalyst.impact defaults to 'Medium'."""
+    cat = Catalyst(event="Earnings beat", window="Q4")
+    assert cat.impact == "Medium"
+
+
+def test_catalyst_high_impact():
+    cat = Catalyst(event="Regulatory clearance", window="H1", impact="High")
+    assert cat.impact == "High"
+
+
+def test_monitoring_rule_fields():
+    rule = MonitoringRule(
+        metric="gross margin",
+        threshold="< 40% for 2 qtrs",
+        action="downgrade to HOLD",
+    )
+    assert rule.metric == "gross margin"
+    assert rule.threshold == "< 40% for 2 qtrs"
+    assert rule.action == "downgrade to HOLD"
+
+
+def test_citation_api_type():
+    """Citation of type 'api' with no URL or loc."""
+    cit = Citation(type="api", id="prices")
+    assert cit.url is None
+    assert cit.loc is None
+
+
+def test_citation_filing_type():
+    cit = Citation(
+        type="filing",
+        id="10Q-2025Q2",
+        url="https://example.com/10q",
+        loc="MD&A",
+    )
+    assert cit.type == "filing"
+    assert cit.loc == "MD&A"
+
+
+# ---------------------------------------------------------------------------
+# FundamentalsSummary model
+# ---------------------------------------------------------------------------
+
+
+def test_fundamentals_summary_all_none_by_default():
+    """FundamentalsSummary can be created with all fields at None."""
+    fs = FundamentalsSummary()
+    assert fs.revenue_cagr_3y is None
+    assert fs.op_margin_trend_bps_per_year is None
+    assert fs.fcf_stability_score is None
+    assert fs.gross_margin_trend_bps_per_year is None
+    assert fs.net_debt_to_ebitda is None
+    assert fs.current_ratio is None
+    assert fs.roe is None
+    assert fs.roic is None
+    assert fs.notes is None
+
+
+def test_fundamentals_summary_with_values():
+    fs = FundamentalsSummary(
+        revenue_cagr_3y=0.1,
+        op_margin_trend_bps_per_year=200.0,
+        fcf_stability_score=0.85,
+        notes="Strong FCF generation.",
+    )
+    assert math.isclose(fs.revenue_cagr_3y, 0.1)
+    assert math.isclose(fs.op_margin_trend_bps_per_year, 200.0)
+    assert math.isclose(fs.fcf_stability_score, 0.85)
+    assert fs.notes == "Strong FCF generation."
+
+
+# ---------------------------------------------------------------------------
+# MacroIndustrySummary model
+# ---------------------------------------------------------------------------
+
+
+def test_macro_industry_summary_all_none_by_default():
+    """MacroIndustrySummary can be created with all optional fields at None."""
+    m = MacroIndustrySummary()
+    assert m.rate_regime is None
+    assert m.inflation_trend is None
+    assert m.fx_headwind_tailwind is None
+    assert m.commodity_links == []
+    assert m.sector is None
+    assert m.notes is None
+
+
+def test_macro_industry_summary_with_values():
+    m = MacroIndustrySummary(
+        rate_regime="Falling",
+        inflation_trend="Stable",
+        fx_headwind_tailwind="Tailwind",
+        commodity_links=["Gold", "Silver"],
+        sector="Financials",
+        notes="Rate cuts expected.",
+    )
+    assert m.rate_regime == "Falling"
+    assert m.commodity_links == ["Gold", "Silver"]
+    assert m.notes == "Rate cuts expected."

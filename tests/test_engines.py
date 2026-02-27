@@ -2,16 +2,161 @@
 Unit tests for Engines modules.
 """
 
+import math
+
 import pytest
 from src.engines.fundamentals import FundamentalsEngine
-from src.engines.technicals import TechnicalsEngine
-from src.engines.sentiment import SentimentEngine
 from src.engines.macro import MacroEngine
+from src.engines.sentiment import SentimentEngine
+from src.engines.technicals import TechnicalsEngine
+
+# ---------------------------------------------------------------------------
+# FundamentalsEngine
+# ---------------------------------------------------------------------------
 
 
 def test_fundamentals_engine():
+    """None input returns None."""
     engine = FundamentalsEngine()
     assert engine.analyze(None) is None
+
+
+def test_fundamentals_engine_empty_dict():
+    """Empty dict is falsy → returns None."""
+    engine = FundamentalsEngine()
+    assert engine.analyze({}) is None
+
+
+def test_fundamentals_engine_revenue_cagr():
+    """Revenue CAGR: 100 → 133.1 over 3 years = exactly 10 %."""
+    engine = FundamentalsEngine()
+    out = engine.analyze({"revenue_history": [100.0, 110.0, 121.0, 133.1]})
+    assert out is not None
+    assert math.isclose(out.revenue_cagr_3y, 0.1, rel_tol=1e-6)
+
+
+def test_fundamentals_engine_revenues_alias():
+    """'revenues' key is accepted as an alias for 'revenue_history'."""
+    engine = FundamentalsEngine()
+    out = engine.analyze({"revenues": [100.0, 110.0, 121.0, 133.1]})
+    assert out is not None
+    assert math.isclose(out.revenue_cagr_3y, 0.1, rel_tol=1e-6)
+
+
+def test_fundamentals_engine_insufficient_revenue_data():
+    """Fewer than 4 revenue points → revenue_cagr_3y is None, no exception."""
+    engine = FundamentalsEngine()
+    out = engine.analyze({"revenue_history": [100.0, 110.0, 121.0]})
+    assert out is not None
+    assert out.revenue_cagr_3y is None
+
+
+def test_fundamentals_engine_op_margin_trend():
+    """Op margin +4 pp over 1 year → +400 bps/year."""
+    engine = FundamentalsEngine()
+    out = engine.analyze({"op_margin_history": [0.10, 0.14]})
+    assert out is not None
+    assert math.isclose(out.op_margin_trend_bps_per_year, 400.0, rel_tol=1e-6)
+
+
+def test_fundamentals_engine_op_margin_declining_trend():
+    """Declining op margin → negative bps/year value."""
+    engine = FundamentalsEngine()
+    out = engine.analyze({"op_margin_history": [0.20, 0.18, 0.16]})
+    assert out is not None
+    assert out.op_margin_trend_bps_per_year is not None
+    assert out.op_margin_trend_bps_per_year < 0
+
+
+def test_fundamentals_engine_op_margins_alias():
+    """'op_margins' key is accepted as an alias for 'op_margin_history'."""
+    engine = FundamentalsEngine()
+    out = engine.analyze({"op_margins": [0.10, 0.14]})
+    assert out is not None
+    assert math.isclose(out.op_margin_trend_bps_per_year, 400.0, rel_tol=1e-6)
+
+
+def test_fundamentals_engine_op_margin_insufficient():
+    """Single op margin point → trend is None."""
+    engine = FundamentalsEngine()
+    out = engine.analyze({"op_margin_history": [0.15]})
+    assert out is not None
+    assert out.op_margin_trend_bps_per_year is None
+
+
+def test_fundamentals_engine_fcf_stability_stable():
+    """Perfectly stable FCF (zero variance) → stability score = 1.0."""
+    engine = FundamentalsEngine()
+    out = engine.analyze({"fcf_history": [100.0, 100.0, 100.0]})
+    assert out is not None
+    assert math.isclose(out.fcf_stability_score, 1.0, rel_tol=1e-6)
+
+
+def test_fundamentals_engine_fcf_stability_volatile():
+    """High-variance FCF → stability score in (0, 1)."""
+    engine = FundamentalsEngine()
+    out = engine.analyze({"fcf_history": [100.0, 0.0]})
+    assert out is not None
+    assert out.fcf_stability_score is not None
+    assert 0.0 < out.fcf_stability_score < 1.0
+
+
+def test_fundamentals_engine_fcf_stability_clamped():
+    """Stability score is always in [0, 1] regardless of input variance."""
+    engine = FundamentalsEngine()
+    out = engine.analyze({"fcf_history": [1_000_000.0, 1.0]})
+    assert out is not None
+    assert out.fcf_stability_score is not None
+    assert 0.0 <= out.fcf_stability_score <= 1.0
+
+
+def test_fundamentals_engine_fcfs_alias():
+    """'fcfs' key is accepted as an alias for 'fcf_history'."""
+    engine = FundamentalsEngine()
+    out = engine.analyze({"fcfs": [100.0, 100.0]})
+    assert out is not None
+    assert math.isclose(out.fcf_stability_score, 1.0, rel_tol=1e-6)
+
+
+def test_fundamentals_engine_fcf_insufficient():
+    """Single FCF value → stability score is None."""
+    engine = FundamentalsEngine()
+    out = engine.analyze({"fcf_history": [100.0]})
+    assert out is not None
+    assert out.fcf_stability_score is None
+
+
+def test_fundamentals_engine_fcf_mean_zero():
+    """FCF series whose mean is zero → stability score is None (avoids ZeroDivision)."""
+    engine = FundamentalsEngine()
+    out = engine.analyze({"fcf_history": [50.0, -50.0]})
+    assert out is not None
+    assert out.fcf_stability_score is None
+
+
+def test_fundamentals_engine_all_metrics():
+    """All three metrics computed correctly from a combined input dict."""
+    engine = FundamentalsEngine()
+    out = engine.analyze(
+        {
+            "revenue_history": [100.0, 110.0, 121.0, 133.1],
+            "op_margin_history": [0.10, 0.14],
+            "fcf_history": [100.0, 100.0, 100.0],
+        }
+    )
+    assert out is not None
+    assert math.isclose(out.revenue_cagr_3y, 0.1, rel_tol=1e-6)
+    assert math.isclose(out.op_margin_trend_bps_per_year, 400.0, rel_tol=1e-6)
+    assert math.isclose(out.fcf_stability_score, 1.0, rel_tol=1e-6)
+
+
+def test_fundamentals_engine_returns_fundamentals_summary():
+    """Return type is FundamentalsSummary when data is provided."""
+    from src.types import FundamentalsSummary
+
+    engine = FundamentalsEngine()
+    out = engine.analyze({"revenue_history": [100.0, 110.0, 121.0, 133.1]})
+    assert isinstance(out, FundamentalsSummary)
 
 
 def test_technicals_engine():
@@ -142,12 +287,25 @@ def test_sentiment_engine():
     assert engine.analyze(None) is None
 
 
+# ---------------------------------------------------------------------------
+# MacroEngine
+# ---------------------------------------------------------------------------
+
+
 def test_macro_engine():
+    """None input returns None."""
     engine = MacroEngine()
     assert engine.analyze(None) is None
 
 
+def test_macro_engine_empty_dict():
+    """Empty dict is falsy → returns None."""
+    engine = MacroEngine()
+    assert engine.analyze({}) is None
+
+
 def test_macro_engine_sample_input():
+    """Full input → all fields populated correctly."""
     engine = MacroEngine()
     sample = {
         "rate_regime": "Rising",
@@ -164,3 +322,33 @@ def test_macro_engine_sample_input():
     assert out.fx_headwind_tailwind == "Neutral"
     assert out.commodity_links == ["Oil", "Copper"]
     assert out.sector == "Materials"
+    assert out.notes == "Sample note"
+
+
+def test_macro_engine_partial_input():
+    """Only rate_regime provided; unset fields default to None / empty list."""
+    engine = MacroEngine()
+    out = engine.analyze({"rate_regime": "Falling"})
+    assert out is not None
+    assert out.rate_regime == "Falling"
+    assert out.inflation_trend is None
+    assert out.fx_headwind_tailwind is None
+    assert out.commodity_links == []
+    assert out.sector is None
+
+
+def test_macro_engine_notes_pass_through():
+    """notes string is preserved verbatim in the output model."""
+    engine = MacroEngine()
+    out = engine.analyze({"notes": "Stagflation risk rising."})
+    assert out is not None
+    assert out.notes == "Stagflation risk rising."
+
+
+def test_macro_engine_returns_macro_industry_summary():
+    """Return type is MacroIndustrySummary when data is provided."""
+    from src.types import MacroIndustrySummary
+
+    engine = MacroEngine()
+    out = engine.analyze({"sector": "Energy"})
+    assert isinstance(out, MacroIndustrySummary)

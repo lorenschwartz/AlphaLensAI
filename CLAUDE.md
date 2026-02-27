@@ -27,7 +27,7 @@ AlphaLensAI/
 │   ├── engines/
 │   │   ├── fundamentals.py # Revenue CAGR, margin trend, FCF stability (DONE)
 │   │   ├── macro.py        # Macro/industry context converter (DONE)
-│   │   ├── technicals.py   # Stub — not yet implemented
+│   │   ├── technicals.py   # Trend, MAs, RSI, MACD, ATR, levels (DONE)
 │   │   └── sentiment.py    # Stub — not yet implemented
 │   ├── models/             # Thin backwards-compat shims (wrap src.types)
 │   ├── orchestrator/
@@ -126,11 +126,21 @@ AnalystConsensus = Literal["Buy", "Hold", "Sell"]
   `fx_headwind_tailwind`, `commodity_links`, `sector`, `notes`.
 - Returns `MacroIndustrySummary` or `None` if `data` is falsy.
 
+**`src/engines/technicals.py` — `TechnicalsEngine.analyze(data)`**
+- Input keys: `prices`/`close_prices`, `highs`, `lows` (raw series); or
+  pre-computed scalars `rsi_14`, `ma_20`, `ma_50`, `ma_200`, `macd_line`,
+  `macd_signal`, `atr_14`, `support`, `resistance`, `trend`, `ma_cross`.
+- Pre-computed values take precedence; raw series used as fallback.
+- Computes: trend (Up/Down/Sideways), MA cross, RSI(14), MACD, ATR(14),
+  support/resistance levels via sliding-window local min/max.
+- Returns `Technicals` or `None` if `data` is falsy.
+- Defensive: missing/insufficient data yields `None` or neutral defaults for
+  required fields (`rsi_14=50.0`, `trend="Sideways"`, `ma_cross="none"`).
+
 ### Stubs (high-priority TODO)
 
 | Module | Class | Method | Expected output |
 |---|---|---|---|
-| `src/engines/technicals.py` | `TechnicalsEngine` | `analyze(data)` | `Technicals` |
 | `src/engines/sentiment.py` | `SentimentEngine` | `analyze(data)` | `Sentiment` |
 | `src/tools/api_fetcher.py` | `APIFetcher` | `fetch(endpoint, params)` | dict |
 | `src/tools/validator.py` | `Validator` | `validate(data)` | validated dict |
@@ -184,6 +194,67 @@ All three checks run in CI on every push to `main`/`master` and on every PR.
 
 ---
 
+## Test-Driven Development (TDD)
+
+All engine and utility code must follow a **Red → Green → Refactor** cycle.
+Tests are the specification; implementation exists to satisfy them.
+
+### The Cycle
+
+1. **Red** — Write a failing test that precisely describes the expected
+   behaviour *before writing any implementation code*.  Run `pytest` and
+   confirm the test fails for the right reason.
+2. **Green** — Write the minimum implementation needed to make all tests pass.
+3. **Refactor** — Improve clarity, remove duplication, enforce style — then
+   re-run the suite to confirm it is still Green.
+
+### Required Coverage per Module
+
+Every `analyze()` (or other non-trivial public method) must have tests for:
+
+| Scenario | What to assert |
+|---|---|
+| **Happy path** | Correct output type and key field values from representative input |
+| **Falsy input** (`None`, `{}`) | Returns `None` (for engines), never raises |
+| **Partial input** | Missing optional keys → `None` fields, no exceptions |
+| **Alias keys** | Alternative key names accepted (e.g. `revenues` vs `revenue_history`) |
+| **Boundary / edge values** | Minimum data required, off-by-one, exact cutoffs |
+| **Invalid / malformed data** | Non-numeric values, zero denominators — never raises |
+| **Output bounds** | Scores clamped [0, 1]; RSI [0, 100]; probabilities [0, 1] |
+
+### Naming Convention
+
+Use `test_<unit>_<scenario>`:
+
+```python
+def test_fundamentals_engine_revenue_cagr(): ...
+def test_fundamentals_engine_insufficient_revenue_data(): ...
+def test_fundamentals_engine_fcf_mean_zero(): ...
+```
+
+### Test Structure (Arrange → Act → Assert)
+
+```python
+def test_fundamentals_engine_revenue_cagr():
+    # Arrange
+    engine = FundamentalsEngine()
+    data = {"revenue_history": [100.0, 110.0, 121.0, 133.1]}
+    # Act
+    result = engine.analyze(data)
+    # Assert
+    assert result is not None
+    assert math.isclose(result.revenue_cagr_3y, 0.1, rel_tol=1e-6)
+```
+
+### What NOT to Test
+
+- Private helpers (`_sma`, `_rsi`, etc.) — test only through the public
+  `analyze()` interface; helpers are implementation details.
+- Internal state or call counts.
+- Real network I/O or filesystem access in unit tests.
+
+---
+
 ## Coding Conventions
 
 ### General
@@ -230,11 +301,18 @@ around each calculation and set the result field to `None` on failure. Return
 
 ## Adding a New Engine
 
-1. Create `src/engines/<name>.py` with a class `<Name>Engine`.
-2. Implement `analyze(self, data: Optional[Dict[str, Any]]) -> Optional[<OutputType>]`.
-3. Output type must be a model from `src/types.py` (or add one there if needed).
-4. Add `tests/test_engines.py` test cases (happy path + empty data + edge cases).
-5. Wire the engine into `src/orchestrator/orchestrator.py`.
+Follow the TDD cycle — tests are written **before** implementation:
+
+1. Define (or confirm) the output type in `src/types.py`.
+2. Create `src/engines/<name>.py` with a **stub** `<Name>Engine.analyze()`
+   that just returns `None`.
+3. **Write tests first** in `tests/test_engines.py` covering all scenarios in
+   the Required Coverage table above.  Run `pytest` and confirm they **fail**
+   (Red).
+4. Implement `analyze(self, data: Optional[Dict[str, Any]]) -> Optional[<OutputType>]`
+   until all tests pass (Green).
+5. Refactor for clarity and style; keep the suite Green.
+6. Wire the engine into `src/orchestrator/orchestrator.py`.
 
 ---
 
@@ -266,7 +344,6 @@ GitHub Actions (`.github/workflows/ci.yml`):
 ## Current Roadmap (from `docs/TODO.md`)
 
 **High priority**
-- Implement `TechnicalsEngine` (deterministic, testable)
 - Implement `SentimentEngine` (deterministic, testable)
 - Implement `APIFetcher` and `Validator`
 - Wire `Orchestrator` to produce a full `Decision`
