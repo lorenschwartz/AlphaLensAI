@@ -114,21 +114,22 @@ class Orchestrator:
 
         catalysts: List[Catalyst] = [
             Catalyst(**c) if isinstance(c, dict) else c
-            for c in input_data.get("catalysts_next_6_12m", [])
+            for c in (input_data.get("catalysts_next_6_12m") or [])
         ]
 
         monitoring: List[MonitoringRule] = [
             MonitoringRule(**m) if isinstance(m, dict) else m
-            for m in input_data.get("monitoring", [])
+            for m in (input_data.get("monitoring") or [])
         ]
 
         citations: List[Citation] = [
             Citation(**c) if isinstance(c, dict) else c
-            for c in input_data.get("citations", [])
+            for c in (input_data.get("citations") or [])
         ]
 
         # -- Enrich assumptions from FundamentalsEngine ------------------------
-        assumptions: Dict[str, Any] = dict(input_data.get("assumptions", {}))
+        # Use `or {}` so an explicit None value is also treated as empty.
+        assumptions: Dict[str, Any] = dict(input_data.get("assumptions") or {})
         if fundamentals is not None:
             _inject = {
                 "rev_cagr_3y": fundamentals.revenue_cagr_3y,
