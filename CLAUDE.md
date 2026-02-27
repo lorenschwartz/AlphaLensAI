@@ -31,7 +31,7 @@ AlphaLensAI/
 │   │   └── sentiment.py    # Stub — not yet implemented
 │   ├── models/             # Thin backwards-compat shims (wrap src.types)
 │   ├── orchestrator/
-│   │   └── orchestrator.py # Stub — wires engine outputs into Decision
+│   │   └── orchestrator.py # Wires engine outputs into Decision (DONE)
 │   ├── llm/
 │   │   └── llm_agent.py    # Stub — LLM reasoning / gap-filling
 │   ├── reporting/
@@ -137,6 +137,17 @@ AnalystConsensus = Literal["Buy", "Hold", "Sell"]
 - Defensive: missing/insufficient data yields `None` or neutral defaults for
   required fields (`rsi_14=50.0`, `trend="Sideways"`, `ma_cross="none"`).
 
+**`src/orchestrator/orchestrator.py` — `Orchestrator.run(input_data)`**
+- Fans out to all four engines (Fundamentals, Macro, Technicals, Sentiment).
+- Assembles engine outputs + analyst-supplied fields into a `Decision`.
+- `TechnicalsEngine` output is preferred; neutral defaults used when absent.
+- `SentimentEngine` is still a stub; raw `"sentiment"` dict used as fallback,
+  with `Hold` consensus when nothing provided.
+- `FundamentalsEngine` results (`rev_cagr_3y`, `op_margin_trend_bps_per_year`,
+  `fcf_stability_score`) are injected into `assumptions` via `setdefault`
+  (caller-supplied values are never overwritten).
+- Returns `None` when `input_data` is falsy; raises on missing required fields.
+
 ### Stubs (high-priority TODO)
 
 | Module | Class | Method | Expected output |
@@ -144,7 +155,6 @@ AnalystConsensus = Literal["Buy", "Hold", "Sell"]
 | `src/engines/sentiment.py` | `SentimentEngine` | `analyze(data)` | `Sentiment` |
 | `src/tools/api_fetcher.py` | `APIFetcher` | `fetch(endpoint, params)` | dict |
 | `src/tools/validator.py` | `Validator` | `validate(data)` | validated dict |
-| `src/orchestrator/orchestrator.py` | `Orchestrator` | `run(input_data)` | `Decision` |
 | `src/llm/llm_agent.py` | `LLMAgent` | `interact(prompt)` | str |
 | `src/reporting/reporter.py` | `Reporter` | `report(result)` | str/bytes |
 
@@ -346,7 +356,6 @@ GitHub Actions (`.github/workflows/ci.yml`):
 **High priority**
 - Implement `SentimentEngine` (deterministic, testable)
 - Implement `APIFetcher` and `Validator`
-- Wire `Orchestrator` to produce a full `Decision`
 
 **Medium priority**
 - `LLMAgent` and prompt adapters
