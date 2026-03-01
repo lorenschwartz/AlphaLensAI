@@ -245,3 +245,33 @@ def test_template_different_tickers():
         r = client.get(f"/analyze/{ticker}")
         assert r.status_code == 200
         assert r.json()["ticker"] == ticker
+
+
+# ---------------------------------------------------------------------------
+# POST /analyze/html — HTML report endpoint
+# ---------------------------------------------------------------------------
+
+
+def test_analyze_html_returns_200():
+    r = client.post("/analyze/html", json=_minimal_body())
+    assert r.status_code == 200
+
+
+def test_analyze_html_content_type_is_html():
+    r = client.post("/analyze/html", json=_minimal_body())
+    assert "text/html" in r.headers["content-type"]
+
+
+def test_analyze_html_contains_ticker():
+    r = client.post("/analyze/html", json=_minimal_body())
+    assert "TEST" in r.text
+
+
+def test_analyze_html_contains_recommendation():
+    r = client.post("/analyze/html", json=_minimal_body())
+    assert "BUY" in r.text
+
+
+def test_analyze_html_is_valid_html_document():
+    r = client.post("/analyze/html", json=_minimal_body())
+    assert "<html" in r.text.lower()

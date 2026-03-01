@@ -6,7 +6,8 @@ FastAPI application for AlphaLensAI.
 Endpoints
 ---------
 GET  /health              — Liveness probe.
-POST /analyze             — Run the full pipeline; return a Decision.
+POST /analyze             — Run the full pipeline; return a Decision (JSON).
+POST /analyze/html        — Same pipeline; return a self-contained HTML report.
 GET  /analyze/{ticker}    — Return a pre-populated template for a ticker
                             so the UI can pre-fill the analysis form.
 
@@ -26,9 +27,11 @@ from typing import Any, Dict
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 
 from src.api.schemas import AnalyzeRequest
 from src.orchestrator.orchestrator import Orchestrator
+from src.reporting.reporter import Reporter
 
 app = FastAPI(
     title="AlphaLensAI",
@@ -88,6 +91,20 @@ def analyze(req: AnalyzeRequest) -> Any:
     input_dict = _serialize(req)
     decision = Orchestrator().run(input_dict)
     return _serialize(decision)
+
+
+@app.post("/analyze/html", tags=["analysis"], response_class=HTMLResponse)
+def analyze_html(req: AnalyzeRequest) -> HTMLResponse:
+    """Run the AlphaLensAI pipeline and return a self-contained HTML report.
+
+    Accepts the same request body as ``POST /analyze``.  Returns an HTML
+    document that can be saved directly as a ``.html`` file or opened in
+    a browser — no external assets required.
+    """
+    input_dict = _serialize(req)
+    decision = Orchestrator().run(input_dict)
+    html_str = Reporter().report(decision)
+    return HTMLResponse(content=html_str or "", status_code=200)
 
 
 @app.get("/analyze/{ticker}", tags=["analysis"])
