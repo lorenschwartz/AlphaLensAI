@@ -1,85 +1,72 @@
 # TODO / Roadmap
 
-This document captures short-term tasks that are actionable for contributors.
+This document captures the current state of the project and remaining work.
 
-## High priority
+## Completed
 
-- Implement `SentimentEngine` in `src/engines/sentiment.py` (deterministic, testable).
-- Implement deterministic `APIFetcher` (`src/tools/api_fetcher.py`) and `Validator`
-  (`src/tools/validator.py`).
+All high and medium priority items have been implemented.
 
-## Medium priority
+### Engines
+- [x] `FundamentalsEngine` — revenue CAGR, op-margin trend, FCF stability
+- [x] `MacroEngine` — macro/industry context converter
+- [x] `TechnicalsEngine` — trend, MAs, RSI, MACD, ATR, support/resistance
+- [x] `SentimentEngine` — analyst consensus mapping, short interest, news sentiment
 
-- LLM agent and prompt adapters (`src/llm/llm_agent.py`).
-- Reporting implementation (`src/reporting/reporter.py`) with HTML export.
-- Add `requirements.txt` / `pyproject.toml` and pin dependencies.
+### Orchestrator
+- [x] `Orchestrator.run()` — fans out to all engines, assembles `Decision`
+- [x] Caller `assumptions` are never overwritten by engine-computed values
 
-## Web UI (FastAPI + React/HTML)
+### Tools
+- [x] `APIFetcher` — registry-based deterministic fetcher; built-in handlers
+      for `fundamentals`, `technicals`, `sentiment`, `macro`
+- [x] `Validator` — validates dict or Pydantic model against Decision schema
+      (or any model via `model_cls=`)
 
-A browser-based front end is planned to make the pipeline accessible without
-writing Python code.  The UI must remain a thin layer over the existing library:
-all business logic stays in `src/`; the web layer only marshals inputs/outputs.
+### LLM
+- [x] `LLMAgent` — backend-agnostic adapter; stub mode by default (no network);
+      `build_decision_prompt()` and `build_risk_check_prompt()` builders;
+      system prompt loaded from `docs/system_prompt.md`
 
-### Back end — FastAPI (`src/api/`)
+### Reporting
+- [x] `Reporter.report()` — self-contained HTML export with inline CSS
 
-- [ ] **`src/api/main.py`** — FastAPI application entry point; CORS, lifespan,
-  health endpoint (`GET /health`).
-- [ ] **`POST /analyze`** — accept a JSON body that maps to the
-  `Orchestrator.run()` input dict, call the orchestrator, return the serialised
-  `Decision`.  Validate with Pydantic before passing to the orchestrator.
-- [ ] **`GET /analyze/{ticker}`** — convenience endpoint: fetches a minimal
-  pre-built template for a ticker so the UI can pre-populate the form.
-- [ ] **`POST /analyze`** with `assumptions` override support — the body may
-  include an `assumptions` dict; the orchestrator's `setdefault` logic already
-  honours caller values, so no orchestrator changes are needed.
-- [ ] **`src/api/schemas.py`** — request/response Pydantic models that are
-  independent of (but consistent with) `src/types.py`.  Keeps the API contract
-  stable even if internal types evolve.
-- [ ] Add `fastapi` and `uvicorn[standard]` to `requirements.txt` and CI.
+### Web layer
+- [x] `src/api/main.py` — FastAPI app with CORS
+  - `GET  /health`
+  - `POST /analyze` (JSON Decision)
+  - `POST /analyze/html` (HTML report)
+  - `GET  /analyze/{ticker}` (form template)
+- [x] `src/api/schemas.py` — `AnalyzeRequest`, `ValuationInput`, `ScenarioInput`
+- [x] `ui/index.html` — Alpine.js SPA (no build step)
+  - Three-tab form: Core / Engines / Assumptions
+  - Decision report view with re-run support
 
-### Front end (`ui/`)
-
-- [ ] **`ui/index.html`** — single-page app (vanilla HTML + JS or a lightweight
-  framework such as Alpine.js; no build step required).
-- [ ] **Analysis form** — input fields for ticker, as-of date, recommendation,
-  target price, thesis bullets, key risks, and the three engine sub-sections
-  (fundamentals, technicals, macro, sentiment).
-- [ ] **Assumptions panel** — secondary form section that exposes the
-  `assumptions` dict as editable key-value pairs so analysts can override
-  computed engine values before re-running.
-- [ ] **Decision report view** — structured display of the returned `Decision`:
-  - Header: ticker · recommendation badge · target price · expected return ·
-    risk rating
-  - Thesis & key risks bullet lists
-  - Scenarios table (bull / base / bear: prob, fair value)
-  - Valuation section (DCF, multiples, blended)
-  - Technicals summary (trend, RSI, MA cross)
-  - Monitoring rules table
-- [ ] **Re-run with overrides** — after viewing a report the analyst can edit
-  assumption values in-place and re-submit without re-entering all inputs.
-
-### Testing
-
-- [ ] Unit tests for each API endpoint using FastAPI's `TestClient` (no network
-  required).
-- [ ] Tests for invalid request bodies → 422 response.
-- [ ] Tests for valid body → 200 response with correct `Decision` fields.
-
-### Non-functional requirements
-
-- The API must be **stateless** — no session state, no database.
-- All computation remains in `src/`; `src/api/` only handles HTTP
-  serialisation/deserialisation.
-- CORS should default to allow `localhost` only; make the allowed origins
-  configurable via an environment variable.
-- The front end must not require a build step or bundler (keep it simple).
-
-## Low priority / Nice to have
-
-- Add architecture diagrams to `docs/`.
-- Add more comprehensive integration tests.
-- Add templates and example datasets for reproducible experiments.
+### Infrastructure
+- [x] `requirements.txt` with pinned dependencies
+- [x] CI updated to install from `requirements.txt`
+- [x] 194 passing unit tests
 
 ---
 
-Please open issues for tasks you want to pick up and reference this file.
+## Remaining (low priority)
+
+### Docs & diagrams
+- [ ] Add architecture diagrams (Mermaid or PNG) to `docs/`
+- [ ] Flesh out `docs/thesis_composer_prompt.md`
+
+### Testing
+- [ ] Integration tests that run the full pipeline end-to-end with example data
+- [ ] Add example datasets under `tests/fixtures/` for reproducible experiments
+
+### LLM integration
+- [ ] Concrete Anthropic SDK backend example / wrapper in `src/llm/`
+- [ ] Prompt versioning / template system for `system_prompt.md`
+
+### Reporting
+- [ ] PDF export option (e.g. via `weasyprint` — add to requirements.txt + CI
+      if introduced)
+- [ ] Charts / sensitivity tables in the `artifacts` dict
+
+### Infrastructure
+- [ ] `pyproject.toml` with build metadata and pinned dev-dependency groups
+- [ ] Pre-commit hooks (black + flake8 as git hooks)
